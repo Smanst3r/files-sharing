@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Files sharing application</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!--  TODO: do it with webpack or vite  -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"><link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        integrity="sha512-..."
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+/>
+    <link rel="stylesheet" href="/styles/style.css">
+</head>
+<body>
+<div>
+    <div class="container">
+        <div class="content">
+            <div id="upload-box-container">
+                <div class="upload-box-inner">
+                    <div>
+                        <input type="file" id="file-upload" name="file[]" multiple>
+                        <label for="file-upload" class="upload-btn">Upload files</label>
+                    </div>
+                    <div>
+                        <button class="start-upload-btn upload-btn" style="display: none">
+                            <i class="fa-solid fa-upload"></i> Start files upload
+                        </button>
+                    </div>
+                    <div>
+                        <input type="file" id="add-more-files" name="file[]" multiple>
+                        <label for="add-more-files" style="display: none">
+                            <i class="fa-solid fa-plus"></i> Add more files
+                        </label>
+                    </div>
+                    <div class="drag-n-drop-hint">
+                        or drag and drop files and folders
+                    </div>
+                </div>
+                <div class="upload-stats-text">
+                    <!-- Filled via js -->
+                </div>
+                <div class="upload-files-queue">
+                    <!-- Filled via js -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const uploadFiles = (fileList) => {
+        const files = !Array.isArray(fileList) ? Array.from(fileList) : fileList;
+        const formData = new FormData();
+
+        for (const file of files) {
+            formData.append('file', file); // field name as Nestjs expects on backend
+        }
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        });
+    }
+
+    function truncateFilename(filename, maxBaseLength = 40) {
+        const lastDotIndex = filename.lastIndexOf('.');
+
+        if (lastDotIndex === -1) {
+            return filename.length > maxBaseLength
+                ? filename.slice(0, maxBaseLength - 2) + '...'
+                : filename;
+        }
+
+        const name = filename.slice(0, lastDotIndex);
+        const ext = filename.slice(lastDotIndex);
+
+        if (name.length <= maxBaseLength) {
+            return name + ext;
+        }
+
+        return name.slice(0, maxBaseLength - 2) + '...' + ext;
+    }
+
+    function formatFileSize(bytes) {
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        let i = 0;
+
+        while (bytes >= 1024 && i < units.length - 1) {
+            bytes /= 1024;
+            i++;
+        }
+
+        return `${bytes.toFixed(2)} ${units[i]}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const uploadBoxContainer = document.getElementById('upload-box-container');
+        const fileUploadInput = document.getElementById('file-upload');
+        const uploadBtnLabel = document.querySelector('label[for="file-upload"]');
+        const addMoreFilesLabel = document.querySelector('label[for="add-more-files"]');
+        const addMoreFilesInput = document.getElementById('add-more-files');
+        const uploadFilesQueueContainer = uploadBoxContainer.querySelector('.upload-files-queue');
+        const uploadStatsContainer = uploadBoxContainer.querySelector('.upload-stats-text');
+        const startUploadBtn = uploadBoxContainer.querySelector('.start-upload-btn');
+
+        let filesQueue = new Proxy({}, {
+            get: (target, prop, receiver) => {
+                return target[prop];
+            },
+            set: (target, prop, newValue, receiver) => {
+                if (target[prop]) {
+                    // Avoid duplicates
+                    return true;
+                }
+
+                target[prop] = newValue;
+
+                // Show changes to user - update ui
+                updateFilesQueueUI();
+                updateButtonVisibility();
+                return true;
+            },
+        });
+
+        function updateFilesQueueUI() {
+            const queueChildren = [];
+            let totalFilesSize = 0;
+            Object.values(filesQueue).forEach((file) => {
+                const queueItemElement = document.createElement('div');
+                const fileInfoElement = document.createElement('div');
+                const closeElement = document.createElement('span');
+                const progressElement = document.createElement('div');
+
+                closeElement.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                progressElement.innerHTML = '<div class="progress-bar"></div>';
+                fileInfoElement.innerHTML = `
+                    <span class="filename">${truncateFilename(file.name)}</span>
+                    <span class="error-notice"></span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                `;
+
+                queueItemElement.classList.add('upload-file-queue-item');
+                closeElement.classList.add('close');
+                progressElement.classList.add('progress');
+                fileInfoElement.classList.add('file-info');
+
+                queueItemElement.append(closeElement);
+                queueItemElement.append(fileInfoElement);
+                queueItemElement.append(progressElement);
+                queueChildren.push(queueItemElement);
+                totalFilesSize += file.size;
+            });
+
+            uploadFilesQueueContainer.replaceChildren(...queueChildren);
+            uploadStatsContainer.innerHTML = `
+                Files <strong>${queueChildren.length}</strong>, <strong>${formatFileSize(totalFilesSize)}</strong>
+            `;
+        }
+
+        function updateButtonVisibility() {
+            const hasFiles = fileUploadInput.files.length > 0;
+            uploadBtnLabel.style.display = hasFiles ? 'none' : '';
+            startUploadBtn.style.display = hasFiles ? '' : 'none';
+            addMoreFilesLabel.style.display = hasFiles ? '' : 'none';
+        }
+
+        fileUploadInput.addEventListener('change', function () {
+            Array.from(this.files).forEach(file => {
+                filesQueue[file.name] = file;
+            });
+        });
+        addMoreFilesInput.addEventListener('change', function () {
+            Array.from(this.files).forEach(file => {
+                filesQueue[file.name] = file;
+            });
+        });
+        startUploadBtn.addEventListener('click', function () {
+            uploadFiles(Object.values(filesQueue));
+        });
+
+        updateButtonVisibility();
+    });
+</script>
+</body>
+</html>
