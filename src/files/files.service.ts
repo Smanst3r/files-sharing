@@ -1,27 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
-import { randomUUID } from 'crypto';
+import { FilesRepository } from "./files.repository";
 
 @Injectable()
 export class FilesService {
-    private tempLinks = new Map<string, { sessionId: string; filename: string }>();
 
-    generateDownloadLink(sessionId: string, filename: string) {
-        const token = randomUUID();
-        this.tempLinks.set(token, { sessionId, filename });
+    constructor(private readonly filesRepository: FilesRepository) {}
 
-        setTimeout(() => this.tempLinks.delete(token), 10 * 60 * 1000); // 10 min
-
-        return { url: `/files/download/${token}` };
+    async saveFile(fileName: string, sessionId: string): Promise<string> {
+        return this.filesRepository.saveFileInDb(fileName, sessionId);
     }
 
-    getFile(token: string, sessionId: string) {
-        const data = this.tempLinks.get(token);
-        if (!data || data.sessionId !== sessionId) return null;
-
-        const filePath = path.resolve('uploads', data.filename);
-        return fs.existsSync(filePath) ? filePath : null;
+    async getFileByToken(token: string) {
+        return this.filesRepository.findFileByToken(token);
     }
 
     getUserFiles(sessionId: string) {

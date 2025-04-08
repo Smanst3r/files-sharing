@@ -6,11 +6,13 @@ import { randomUUID } from 'crypto';
 export class SessionsMiddleware implements NestMiddleware {
     use(req: Request, res: Response, next: NextFunction) {
         if (!req.cookies?.sessionId) {
-            res.cookie('sessionId', randomUUID(), {
+            const newSessionId = randomUUID();
+            res.cookie('sessionId', newSessionId, {
                 httpOnly: true,
                 sameSite: 'strict',
                 maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
             });
+            req.cookies.sessionId = newSessionId;
         }
         next();
     }

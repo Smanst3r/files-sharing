@@ -4,6 +4,6 @@ import { SessionsMiddleware } from './sessions.middleware';
 @Module({})
 export class SessionsModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(SessionsMiddleware).forRoutes('*');
+        consumer.apply(SessionsMiddleware).forRoutes('upload');
     }
 }

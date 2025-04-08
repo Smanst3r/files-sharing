@@ -1,7 +1,7 @@
 import {
     Controller,
     Req,
-    Get,
+    Get, Param, Res, NotFoundException,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { Response, Request } from 'express';
@@ -21,5 +21,20 @@ export class FilesController {
             session_id: sessionId,
             files: this.filesService.getUserFiles(sessionId)
         };
+    }
+
+    @Get('download/:token')
+    async download(@Param('token') token: string, @Res() res: Response) {
+        const fileData = await this.filesService.getFileByToken(token);
+
+        if (!fileData) {
+            throw new NotFoundException('File not found or link has expired');
+        }
+        if (new Date() > fileData.expiresAt) {
+            throw new NotFoundException('Download link has expired');
+        }
+
+        // return res.sendFile(join('./uploads', fileData.sessionId, fileData.fileName));
+        return res.sendFile(fileData.fileName, { root: './uploads/'+fileData.sessionId });
     }
 }

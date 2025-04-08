@@ -4,6 +4,8 @@
 /build
 /uploads
 
+app.db
+
 # Logs
 logs
 *.log

@@ -18,6 +18,14 @@ body {
   box-sizing: border-box;
 }
 
+.text-danger {
+  color: #d80e29 !important;
+}
+
+.text-success {
+  color: #198754 !important;
+}
+
 #upload-box-container {
   margin: 0 auto;
   position: relative;
@@ -25,10 +33,9 @@ body {
   box-sizing: border-box;
   border-radius: 20px;
   min-height: 55px;
-  box-shadow: 0px 0px 50px 0px rgba(4, 30, 77, 0.1215686275);
+  box-shadow: 0 0 50px 0 rgba(4, 30, 77, 0.1215686275);
   padding: 35px 0;
-  max-width: 560px;
-  /* overflow: hidden; */
+  max-width: 650px;
   height: fit-content;
   width: 100%;
   background: white;
@@ -119,20 +126,71 @@ body {
   margin-left: 10px;
   font-weight: normal;
 }
-#upload-box-container .close {
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper {
+  background: #f2f5f8;
+  border-radius: 8px;
+  height: 46px;
+  display: flex;
+  padding: 0 5px 0 20px;
+  margin: 5px auto 5px;
+  gap: 5px;
+  align-items: center;
+  max-width: 100%;
+  position: relative;
+}
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper .share-link {
+  color: #1389fe !important;
+  text-decoration: none;
+  display: inline-block;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper .share-link-copy {
+  margin-left: auto;
+}
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper .share-link-copy .share-link-copy-btn {
+  display: inline-flex;
+  height: 36px;
+  border-radius: 8px;
+  align-items: center;
+  transition: background-color 0.5s ease;
+  color: #1389fe;
+  background: #e1edfd;
+  min-width: fit-content;
+  overflow: hidden;
+  margin-left: auto;
+  padding: 0 25px 0 15px;
+  border: 2px solid #1389fe;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper .share-link-copy .share-link-copy-btn:not(.copied-success):hover {
+  background-color: #1389fe;
+  color: #fff;
+}
+#upload-box-container .upload-files-queue .upload-file-queue-item .share-link-wrapper .share-link-copy .share-link-copy-btn.copied-success {
+  color: #198754;
+  background-color: #688f7d;
+  border: 2px solid #198754;
+}
+#upload-box-container .upload-status-icon {
   position: absolute;
   float: right;
   height: 15px;
   line-height: 15px;
   width: 10px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   right: 5px;
-  top: calc(50% - 7px);
+  top: 15px;
   z-index: 3;
 }
-#upload-box-container .close :hover {
+#upload-box-container .upload-status-icon.close {
+  cursor: pointer;
+}
+#upload-box-container .upload-status-icon.close :hover {
   color: #111;
 }
 #upload-box-container .progress {

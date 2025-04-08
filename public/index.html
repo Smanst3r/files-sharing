@@ -28,17 +28,6 @@
                         <input type="file" id="file-upload" name="file[]" multiple>
                         <label for="file-upload" class="upload-btn">Upload files</label>
                     </div>
-                    <div>
-                        <button class="start-upload-btn upload-btn" style="display: none">
-                            <i class="fa-solid fa-upload"></i> Start files upload
-                        </button>
-                    </div>
-                    <div>
-                        <input type="file" id="add-more-files" name="file[]" multiple>
-                        <label for="add-more-files" style="display: none">
-                            <i class="fa-solid fa-plus"></i> Add more files
-                        </label>
-                    </div>
                     <div class="drag-n-drop-hint">
                         or drag and drop files and folders
                     </div>
@@ -54,21 +43,9 @@
     </div>
 </div>
 <script>
-    const uploadFiles = (fileList) => {
-        const files = !Array.isArray(fileList) ? Array.from(fileList) : fileList;
-        const formData = new FormData();
+    const FILENAME_MAX_LENGTH = 250;
 
-        for (const file of files) {
-            formData.append('file', file); // field name as Nestjs expects on backend
-        }
-
-        fetch('/upload', {
-            method: 'POST',
-            body: formData,
-        });
-    }
-
-    function truncateFilename(filename, maxBaseLength = 40) {
+    function truncateFilename(filename, maxBaseLength = 65) {
         const lastDotIndex = filename.lastIndexOf('.');
 
         if (lastDotIndex === -1) {
@@ -102,42 +79,22 @@
     document.addEventListener('DOMContentLoaded', function () {
         const uploadBoxContainer = document.getElementById('upload-box-container');
         const fileUploadInput = document.getElementById('file-upload');
-        const uploadBtnLabel = document.querySelector('label[for="file-upload"]');
-        const addMoreFilesLabel = document.querySelector('label[for="add-more-files"]');
-        const addMoreFilesInput = document.getElementById('add-more-files');
         const uploadFilesQueueContainer = uploadBoxContainer.querySelector('.upload-files-queue');
         const uploadStatsContainer = uploadBoxContainer.querySelector('.upload-stats-text');
-        const startUploadBtn = uploadBoxContainer.querySelector('.start-upload-btn');
 
-        let filesQueue = new Proxy({}, {
-            get: (target, prop, receiver) => {
-                return target[prop];
-            },
-            set: (target, prop, newValue, receiver) => {
-                if (target[prop]) {
-                    // Avoid duplicates
-                    return true;
-                }
-
-                target[prop] = newValue;
-
-                // Show changes to user - update ui
-                updateFilesQueueUI();
-                updateButtonVisibility();
-                return true;
-            },
-        });
-
-        function updateFilesQueueUI() {
+        fileUploadInput.addEventListener('change', function () {
             const queueChildren = [];
-            let totalFilesSize = 0;
-            Object.values(filesQueue).forEach((file) => {
+            const preparedForUploadFiles = [];
+
+            [...this.files].forEach((file) => {
                 const queueItemElement = document.createElement('div');
                 const fileInfoElement = document.createElement('div');
-                const closeElement = document.createElement('span');
+                const statusIcon = document.createElement('span');
                 const progressElement = document.createElement('div');
+                const errorText = document.createElement('div');
 
-                closeElement.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                statusIcon.style.display = 'none';
+                statusIcon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
                 progressElement.innerHTML = '<div class="progress-bar"></div>';
                 fileInfoElement.innerHTML = `
                     <span class="filename">${truncateFilename(file.name)}</span>
@@ -146,45 +103,117 @@
                 `;
 
                 queueItemElement.classList.add('upload-file-queue-item');
-                closeElement.classList.add('close');
+                statusIcon.classList.add('upload-status-icon', 'close');
                 progressElement.classList.add('progress');
                 fileInfoElement.classList.add('file-info');
+                errorText.classList.add('text-danger', 'error-text');
+                queueItemElement.dataset.filename = file.name;
+                queueItemElement.dataset.size = file.size;
 
-                queueItemElement.append(closeElement);
+                queueItemElement.append(statusIcon);
                 queueItemElement.append(fileInfoElement);
                 queueItemElement.append(progressElement);
+                queueItemElement.append(errorText);
                 queueChildren.push(queueItemElement);
-                totalFilesSize += file.size;
+
+                // Do some validation
+                if (file.name.length > FILENAME_MAX_LENGTH) {
+                    errorText.innerText = 'File name too long';
+                } else if (uploadFilesQueueContainer.querySelector(`[data-filename="${file.name}"]`)) {
+                    errorText.innerText = 'Files was already added to upload list'
+                } else {
+                    preparedForUploadFiles.push({
+                        file: file,
+                        element: queueItemElement,
+                    });
+                }
             });
 
-            uploadFilesQueueContainer.replaceChildren(...queueChildren);
+            uploadFilesQueueContainer.append(...queueChildren);
+
+            let totalFilesSize = 0;
+            for (const queueItem of uploadFilesQueueContainer.children) {
+                totalFilesSize += parseInt(queueItem.dataset.size);
+            }
+
             uploadStatsContainer.innerHTML = `
-                Files <strong>${queueChildren.length}</strong>, <strong>${formatFileSize(totalFilesSize)}</strong>
+                Files <strong>${uploadFilesQueueContainer.children.length}</strong>,
+                <strong>${formatFileSize(totalFilesSize)}</strong>
             `;
-        }
 
-        function updateButtonVisibility() {
-            const hasFiles = fileUploadInput.files.length > 0;
-            uploadBtnLabel.style.display = hasFiles ? 'none' : '';
-            startUploadBtn.style.display = hasFiles ? '' : 'none';
-            addMoreFilesLabel.style.display = hasFiles ? '' : 'none';
-        }
+            preparedForUploadFiles.forEach(fileData => {
+                const progressBarEl = fileData.element.querySelector('.progress-bar');
+                const errorText = fileData.element.querySelector('.error-text');
+                const statusIcon = fileData.element.querySelector('.upload-status-icon');
+                const formData = new FormData();
+                formData.append('file', fileData.file); // field name as Nestjs expects on backend
 
-        fileUploadInput.addEventListener('change', function () {
-            Array.from(this.files).forEach(file => {
-                filesQueue[file.name] = file;
+                const xhr = new XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function (event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        progressBarEl.style.width = `${percent}%`;
+                    }
+                });
+
+                xhr.onreadystatechange = (event) => {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        statusIcon.style.display = '';
+                        try {
+                            const r = JSON.parse(xhr.response);
+                            if (r?.statusCode !== 200 && r?.statusCode !== 201) {
+                                errorText.innerHTML = r?.message ?? 'Unexpected error occurred';
+                            } else {
+                                statusIcon.classList.remove('close');
+                                statusIcon.innerHTML = '<i class="fa-solid fa-check text-success"></i>';
+                                r?.files?.forEach(file => {
+                                    const fileQueueEl = uploadFilesQueueContainer.querySelector(`.upload-file-queue-item[data-filename="${file.fileName}"]`);
+                                    if (fileQueueEl) {
+                                        const shareFileEl = document.createElement('div');
+                                        shareFileEl.innerHTML = `
+                                            <div class="share-link-wrapper">
+                                                <div class="share-link">
+                                                    ${file.link}
+                                                </div>
+                                                <a href="${window.location.origin}${file.link}" target="_blank" rel="noreferrer noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                                                <div class="share-link-copy">
+                                                    <button type="button"
+                                                            class="share-link-copy-btn"
+                                                            data-clipboard-data="${window.location.origin}${file.link}">Copy link</button>
+                                                </div>
+                                            </div>
+                                        `;
+                                        fileQueueEl.append(shareFileEl);
+                                    }
+                                });
+                            }
+                        } catch (err) {
+                            errorText.innerHTML = err.toString();
+                        }
+                    }
+                }
+
+                statusIcon.addEventListener('click', function () {
+                    this.closest('.upload-file-queue-item').remove();
+                });
+
+                xhr.open('POST', '/upload');
+                xhr.send(formData);
             });
         });
-        addMoreFilesInput.addEventListener('change', function () {
-            Array.from(this.files).forEach(file => {
-                filesQueue[file.name] = file;
-            });
-        });
-        startUploadBtn.addEventListener('click', function () {
-            uploadFiles(Object.values(filesQueue));
-        });
 
-        updateButtonVisibility();
+        let clipboardCopyTimeout = null;
+        document.addEventListener('click', function (event) {
+            const target = event.target;
+            if (target && target.classList.contains('share-link-copy-btn')) {
+                navigator.clipboard.writeText(target.dataset.clipboardData);
+                target.classList.add('copied-success');
+                clipboardCopyTimeout && clearTimeout(clipboardCopyTimeout);
+                clipboardCopyTimeout = setTimeout(() => {
+                    target.classList.remove('copied-success');
+                }, 1500);
+            }
+        });
     });
 </script>
 </body>
