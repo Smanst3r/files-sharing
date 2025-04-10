@@ -1,22 +1,27 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { FilesModule } from './files/files.module';
-import { SessionsModule } from './sessions/sessions.module';
 import { UploadController } from "./upload/upload.controller";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { FileEntity } from "./files/file.entity";
+import { ConfigModule } from "@nestjs/config";
+import { AuthController } from "./auth/auth.controller";
+import { AppController } from "./app.controller";
 
 @Module({
     imports: [
         FilesModule,
-        SessionsModule,
         TypeOrmModule.forRoot({
             type: 'sqlite',
             database: 'app.db',
             entities: [FileEntity],
             synchronize: false,
         }),
-        // TypeOrmModule.forFeature([FileEntity]),
+        ConfigModule.forRoot({ isGlobal: true }),
     ],
-    controllers: [UploadController],
+    controllers: [AppController, UploadController, AuthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+
+    }
+}

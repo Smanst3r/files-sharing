@@ -9,19 +9,49 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!--  TODO: do it with webpack or vite  -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"><link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-        integrity="sha512-..."
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"
-/>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+          rel="stylesheet">
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+            integrity="sha512-..."
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+    />
     <link rel="stylesheet" href="/styles/style.css">
 </head>
 <body>
+<dialog id="website-settings-dialog">
+    <form action="/save-website-settings" method="POST">
+        <div>
+            <label for="ip-whitelist">Allowed IP Addresses</label>
+            <textarea name="allowed_ip_addresses" id="ip-whitelist" cols="30" rows="10">{{#each allowedIps}}{{this}}&#13;{{/each}}</textarea>
+        </div>
+        <div>
+            <label for="access-tokens">Access Tokens</label>
+            <textarea name="access_tokens" id="access-tokens" cols="30" rows="10">{{#each accessTokens}}{{this}}&#13;{{/each}}</textarea>
+            <div>
+                <small>
+                    Users not listed in the IP whitelist can access the website using one of these tokens.
+                    Each token should be on a new line.
+                </small>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success" style="margin-top: 10px">Save</button>
+        <button type="button" class="btn close-dialog">Close</button>
+    </form>
+</dialog>
+
 <div>
     <div class="container">
         <div class="content">
+
+            <div id="header">
+                <button class="btn btn-primary" id="website-settings-btn" type="button">
+                    IP Whitelist & Access Tokens
+                </button>
+            </div>
+
             <div id="upload-box-container">
                 <div class="upload-box-inner">
                     <div>
@@ -39,6 +69,75 @@
                     <!-- Filled via js -->
                 </div>
             </div>
+
+            <div style="margin-top: 2rem">
+                <div class="files-lifetime-alert">
+                    <div class="alert-content">
+                        <svg viewBox="0 0 16 20" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
+                             class="svg notification__icon" style="width: 16px; height: 19px;">
+                            <g id="Files" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                <g id="17" transform="translate(-107.000000, -536.000000)" fill="currentColor"
+                                   fill-rule="nonzero">
+                                    <g id="Group-37-Copy-2" transform="translate(107.000000, 536.000000)">
+                                        <path d="M12.4398914,19.1077979 C12.442916,19.0339462 12.4444444,18.9595641 12.4444444,18.8846813 C12.4444444,15.604601 10.4791485,14.6154842 10.4791485,14.6154842 C10.7694101,16.6658637 9.40699636,17.2927872 9.40699636,17.2927872 C10.1441687,13.1687601 6.41453747,11.8181818 6.41453747,11.8181818 C6.70452805,14.6397768 3.55555556,15.4838699 3.55555556,18.8366815 C3.55555556,18.9111546 3.55712629,18.9852317 3.56023393,19.0588763 C1.41362652,17.5690458 0,15.0295661 0,12.1474034 C0,6.3444601 5.6681505,4.88352969 5.14616745,0 C5.14616745,0 11.8595036,2.33753931 10.5325935,9.47527855 C10.5325935,9.47527855 12.9849381,8.39021859 12.4624672,4.84148489 C12.4624672,4.84148489 16,6.55341773 16,12.2304798 C16,15.1681677 14.5864777,17.6606099 12.4398914,19.1077979 Z"
+                                              id="Combined-Shape"></path>
+                                    </g>
+                                </g>
+                            </g>
+                        </svg>
+                        <span class="alert-text">
+                            Your files will be stored for {{filesDaysLifetime}} days.
+                        </span>
+                    </div>
+                </div>
+                <table id="uploaded-files-table" class="table">
+                    <thead>
+                    <tr>
+                        <th style="text-align: right;"></th>
+                        <th style="text-align: left">Filename</th>
+                        <th style="text-align: right">Size</th>
+                        <th style="text-align: right">Last modified</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {{#each files}}
+                        <tr>
+                            <td style="text-align: right; max-width:100%; white-space:nowrap;">
+                                <form method="POST"
+                                      style="display: inline"
+                                      onsubmit="return confirm('Are you sure you want to delete file?')"
+                                      action="/files/remove/{{this.id}}">
+                                    <button type="submit"
+                                            title="Remove file"
+                                            class="btn btn-danger">
+                                        Remove
+                                    </button>
+                                </form>
+                            </td>
+                            <td style="text-align: left">
+                                <span>{{this.name}}</span>
+                                <div>
+                                    <a href="/files/d/{{this.token}}" target="_blank" rel="noopener noreferrer"
+                                       style="margin-right: 7px">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> {{this.token}}
+                                    </a>
+                                    <small class="expires-at-text" title="Expires at: {{formatDate this.tokenExpiresAt "MMM dd, yyyy HH:mm:ss"}}">
+                                        Expires
+                                        {{formatDate this.tokenExpiresAt "formatDistanceToNow"}}
+                                    </small>,
+                                    <small class="expires-at-text" title="Expires at: {{formatDate this.dateOfRemoval "MMM dd, yyyy HH:mm:ss"}}">
+                                        Will be removed
+                                        {{formatDate this.dateOfRemoval "formatDistanceToNow"}}
+                                    </small>,
+                                </div>
+                            </td>
+                            <td style="text-align: right">{{this.sizeFormatted}}</td>
+                            <td style="text-align: right">{{formatDate this.mtime "MMM dd, yyyy HH:mm:ss"}}</td>
+                        </tr>
+                    {{/each}}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -50,8 +149,8 @@
 
         if (lastDotIndex === -1) {
             return filename.length > maxBaseLength
-                ? filename.slice(0, maxBaseLength - 2) + '...'
-                : filename;
+                    ? filename.slice(0, maxBaseLength - 2) + '...'
+                    : filename;
         }
 
         const name = filename.slice(0, lastDotIndex);
@@ -173,7 +272,7 @@
                                         shareFileEl.innerHTML = `
                                             <div class="share-link-wrapper">
                                                 <div class="share-link">
-                                                    ${file.link}
+                                                    ${window.location.origin}${file.link}
                                                 </div>
                                                 <a href="${window.location.origin}${file.link}" target="_blank" rel="noreferrer noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
                                                 <div class="share-link-copy">
@@ -213,6 +312,20 @@
                     target.classList.remove('copied-success');
                 }, 1500);
             }
+        });
+
+        // Handle website settings dialog
+        const websiteSettingsBtn = document.getElementById('website-settings-btn');
+        const websiteSettingsDialog = document.getElementById('website-settings-dialog');
+        websiteSettingsBtn.addEventListener('click', function () {
+            if (websiteSettingsDialog.open) {
+                websiteSettingsDialog.close();
+            } else {
+                websiteSettingsDialog.showModal();
+            }
+        });
+        websiteSettingsDialog.querySelector('.close-dialog')?.addEventListener('click', function () {
+            websiteSettingsDialog.close();
         });
     });
 </script>

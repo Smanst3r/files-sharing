@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="/styles/style.css">
+</head>
+<body>
+<form action="" method="POST" style="margin: 3rem auto; max-width: 400px;">
+    <h2>Enter Access Token</h2>
+    {{#if validationError}}
+        <p class="text-danger">{{validationError}}</p>
+    {{/if}}
+
+    <input type="text" name="token" placeholder="Token" required
+           style="width: 100%; padding: 10px; margin-bottom: 1rem;"/>
+    <button type="submit" style="padding: 10px 20px;">Submit</button>
+</form>
+</body>
+</html>

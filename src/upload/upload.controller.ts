@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { randomUUID } from 'crypto';
 import { extname, join } from 'path';
 import { Request } from 'express';
 import * as fs from "fs";
@@ -31,12 +30,12 @@ export class UploadController {
             {
                 storage: diskStorage({
                     destination: (req, file, cb) => {
-                        const sessionId = req.cookies.sessionId;
-                        if (!sessionId) {
-                            return cb(new Error('User has no no authenticated session'), '');
+                        const uploadDir = req.session.user?.uploadDir;
+                        if (!uploadDir) {
+                            return cb(new Error('User session is missing upload dir'), '');
                         }
 
-                        const userDirectory = join('./uploads', sessionId.toString());
+                        const userDirectory = join('./uploads', uploadDir);
                         fs.mkdirSync(userDirectory, { recursive: true });
                         cb(null, userDirectory);
                     },
@@ -51,11 +50,7 @@ export class UploadController {
         )
     )
     async uploadFile(@UploadedFiles() files: { file?: Express.Multer.File[] }, @Req() req: Request) {
-        const sessionId = req.cookies.sessionId;
-        if (!sessionId) {
-            return { error: 'User has no no authenticated session' };
-        }
-
+        const sessionId = req.sessionID;
         const response: { statusCode: number, files: TResponseFile[] } = {
             statusCode: 200,
             files: [],
@@ -68,7 +63,7 @@ export class UploadController {
                 response.files.push({
                     fileName: file.filename,
                     size: file.size,
-                    link: `/files/download/${downloadFileToken}`,
+                    link: `/files/d/${downloadFileToken}`,
                 });
             }
         }

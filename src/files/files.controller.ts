@@ -1,7 +1,7 @@
 import {
     Controller,
     Req,
-    Get, Param, Res, NotFoundException,
+    Get, Param, Res, NotFoundException, Post,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { Response, Request } from 'express';
@@ -11,20 +11,20 @@ export class FilesController {
     constructor(private readonly filesService: FilesService) {}
 
     @Get('my')
-    myFiles(@Req() req: Request) {
-        const sessionId = req.cookies?.sessionId;
-        if (!sessionId) {
-            return { error: 'User has no no authenticated session' };
+    async myFiles(@Req() req: Request) {
+        const uploadDir = req.session.user?.uploadDir;
+        if (!uploadDir) {
+            return { error: 'User session is missing upload dir' };
         }
 
         return {
-            session_id: sessionId,
-            files: this.filesService.getUserFiles(sessionId)
+            // session_id: req.sessionID,
+            files: await this.filesService.getUserFiles(req.sessionID, uploadDir)
         };
     }
 
-    @Get('download/:token')
-    async download(@Param('token') token: string, @Res() res: Response) {
+    @Get('d/:token')
+    async download(@Req() req: Request, @Param('token') token: string, @Res() res: Response) {
         const fileData = await this.filesService.getFileByToken(token);
 
         if (!fileData) {
@@ -34,7 +34,16 @@ export class FilesController {
             throw new NotFoundException('Download link has expired');
         }
 
-        // return res.sendFile(join('./uploads', fileData.sessionId, fileData.fileName));
-        return res.sendFile(fileData.fileName, { root: './uploads/'+fileData.sessionId });
+        const uploadDir = req.session.user?.uploadDir;
+        return res.sendFile(fileData.fileName, { root: './uploads/'+uploadDir });
+    }
+
+    @Post('remove/:fileId')
+    async remove(@Param('fileId') fileIdParam: string, @Req() req: Request, @Res() res: Response) {
+        if (req.session.user?.uploadDir) {
+            const fileId = parseInt(fileIdParam);
+            await this.filesService.removeFile(req.session.user.uploadDir, fileId);
+            res.redirect('/');
+        }
     }
 }
