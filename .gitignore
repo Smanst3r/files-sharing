@@ -3,6 +3,9 @@
 /node_modules
 /build
 /uploads
+/sessions
+allowed_ip_addresses.txt
+tokens.txt
 
 app.db
 
