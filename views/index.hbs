@@ -117,15 +117,25 @@
                             <td style="text-align: left">
                                 <span>{{this.name}}</span>
                                 <div>
-                                    <a href="/files/d/{{this.token}}" target="_blank" rel="noopener noreferrer"
-                                       style="margin-right: 7px">
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> {{this.token}}
-                                    </a>
-                                    <small class="expires-at-text" title="Expires at: {{formatDate this.tokenExpiresAt "MMM dd, yyyy HH:mm:ss"}}">
-                                        Expires
-                                        {{formatDate this.tokenExpiresAt "formatDistanceToNow"}}
-                                    </small>,
-                                    <small class="expires-at-text" title="Will be removed: {{formatDate this.dateOfRemoval "MMM dd, yyyy HH:mm:ss"}}">
+                                    {{#if this.tokenIsExpired}}
+                                        <span style="margin-right: 7px; text-decoration: line-through;">
+                                            {{this.token}}
+                                        </span>
+                                        <small class="text-danger" title="Expired: {{formatDate this.tokenExpiresAt "MMM dd, yyyy HH:mm:ss"}}">
+                                            Expired
+                                            {{formatDate this.tokenExpiresAt "formatDistanceToNow"}}
+                                        </small>,
+                                    {{else}}
+                                        <a href="/files/d/{{this.token}}" target="_blank" rel="noopener noreferrer"
+                                           style="margin-right: 7px">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i> {{this.token}}
+                                        </a>
+                                        <small class="" title="Expires at: {{formatDate this.tokenExpiresAt "MMM dd, yyyy HH:mm:ss"}}">
+                                            Expires
+                                            {{formatDate this.tokenExpiresAt "formatDistanceToNow"}}
+                                        </small>,
+                                    {{/if}}
+                                    <small class="text-danger" title="Will be removed: {{formatDate this.dateOfRemoval "MMM dd, yyyy HH:mm:ss"}}">
                                         Will be removed
                                         {{formatDate this.dateOfRemoval "formatDistanceToNow"}}
                                     </small>,

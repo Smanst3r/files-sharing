@@ -8,18 +8,21 @@ declare module "express-session" {
 }
 
 declare global {
-    type TFileData = {
+    type TFileStat = {
         name: string,
         size: number,
         mtime: Date,
         ctime: Date,
         isFile: boolean,
         isDirectory: boolean,
+    }
+    type TUploadedFile = TFileStat & {
+        id: number
         sizeFormatted: string
+        token: string
+        tokenExpiresAt: Date
+        tokenIsExpired: boolean
         dateOfRemoval?: Date
-
-        token?: string
-        tokenExpiresAt?: Date
     }
 }
 

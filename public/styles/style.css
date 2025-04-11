@@ -140,7 +140,7 @@ table.table tbody tr td {
   justify-content: end;
 }
 
-#uploaded-files-table .expires-at-text {
+#uploaded-files-table .text-danger {
   text-decoration: underline;
   text-decoration-color: #dc3545;
   color: #dc3545;

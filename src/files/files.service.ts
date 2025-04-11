@@ -44,7 +44,7 @@ export class FilesService {
                 const stats = fs.statSync(filePath);
                 const mtime = stats.mtime;
 
-                const fileStat: TFileData = {
+                const fileStat: TFileStat & Partial<TUploadedFile> = {
                     name: filename,
                     size: stats.size,
                     mtime: mtime,
@@ -70,12 +70,13 @@ export class FilesService {
                         sessionId: sessionId,
                     });
 
-                    return {
-                        ...file,
-                        id: fileTokenData?.id,
-                        token: fileTokenData?.token ?? null,
-                        tokenExpiresAt: fileTokenData?.expiresAt ?? null,
-                    } as TFileData;
+                    if (fileTokenData) {
+                        file.id = fileTokenData.id;
+                        file.token = fileTokenData.token;
+                        file.tokenExpiresAt = fileTokenData.expiresAt;
+                        file.tokenIsExpired = new Date() > fileTokenData.expiresAt;
+                    }
+                    return file;
                 })
             );
         }
