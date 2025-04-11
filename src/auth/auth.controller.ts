@@ -23,7 +23,7 @@ export class AuthController {
         if (tokens.includes(token)) {
             req.session.user = {
                 authenticated: true,
-                uploadDir: nanoid(12),
+                uploadDir: req.sessionID,
             };
             return res.redirect('/');
         } else {

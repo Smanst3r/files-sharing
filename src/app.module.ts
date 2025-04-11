@@ -6,6 +6,8 @@ import { FileEntity } from "./files/file.entity";
 import { ConfigModule } from "@nestjs/config";
 import { AuthController } from "./auth/auth.controller";
 import { AppController } from "./app.controller";
+import { CleanupModule } from './cleanup/cleanup.module';
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
     imports: [
@@ -17,6 +19,8 @@ import { AppController } from "./app.controller";
             synchronize: false,
         }),
         ConfigModule.forRoot({ isGlobal: true }),
+        CleanupModule,
+        ScheduleModule.forRoot(),
     ],
     controllers: [AppController, UploadController, AuthController],
 })
